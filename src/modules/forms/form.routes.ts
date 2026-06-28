@@ -7,19 +7,22 @@ import {
   fieldIdValidator,
 } from './form.validator';
 import { validate } from '../../middleware/validate';
-import { authenticate } from '../../middleware/auth';
+import { authenticate, requirePermission } from '../../middleware/auth';
 
 const router = Router();
 
-// Public route
+// Public route — used by both the website form and the /reception QR form
+// (?scope=reception). No auth so students can load the form on their phones.
 router.get('/active', FormController.getActiveForm);
 
-// Protected routes
+// Protected — reading the field config requires a login.
 router.get('/', authenticate, FormController.getAll);
-router.post('/', authenticate, createFieldValidator, validate, FormController.create);
-router.put('/reorder', authenticate, reorderFieldsValidator, validate, FormController.reorder);
+
+// Mutating the form builder is an Owner capability (manageFormFields).
+router.post('/', authenticate, requirePermission('manageFormFields'), createFieldValidator, validate, FormController.create);
+router.put('/reorder', authenticate, requirePermission('manageFormFields'), reorderFieldsValidator, validate, FormController.reorder);
 router.get('/:id', authenticate, fieldIdValidator, validate, FormController.getById);
-router.put('/:id', authenticate, updateFieldValidator, validate, FormController.update);
-router.delete('/:id', authenticate, fieldIdValidator, validate, FormController.delete);
+router.put('/:id', authenticate, requirePermission('manageFormFields'), updateFieldValidator, validate, FormController.update);
+router.delete('/:id', authenticate, requirePermission('manageFormFields'), fieldIdValidator, validate, FormController.delete);
 
 export default router;

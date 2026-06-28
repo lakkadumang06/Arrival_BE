@@ -1,8 +1,9 @@
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
-import { AuthRequest } from '../shared/types';
+import { AuthRequest, PermissionKey, UserRole } from '../shared/types';
 import { sendError } from '../shared/utils/apiResponse';
+import { User } from '../modules/auth/auth.model';
 
 export const authenticate = (
   req: AuthRequest,
@@ -37,6 +38,39 @@ export const authorize = (...roles: string[]) => {
       sendError(res, 403, 'Access denied. Insufficient permissions.');
       return;
     }
+    next();
+  };
+};
+
+/**
+ * Granular RBAC: checks the Owner-toggleable permission flags stored on the
+ * user document. Owner & admin bypass the check (they always have full access).
+ * Permissions are read live from the DB so the Owner's toggles take effect
+ * immediately without forcing the Receptionist to log in again.
+ */
+export const requirePermission = (permission: PermissionKey) => {
+  return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+      sendError(res, 401, 'Access denied. No token provided.');
+      return;
+    }
+
+    if (req.user.role === UserRole.OWNER || req.user.role === UserRole.ADMIN) {
+      next();
+      return;
+    }
+
+    const user = await User.findById(req.user.id).select('permissions active');
+    if (!user || !user.active) {
+      sendError(res, 403, 'Account is inactive.');
+      return;
+    }
+
+    if (!user.permissions?.[permission]) {
+      sendError(res, 403, `Access denied. Missing permission: ${permission}`);
+      return;
+    }
+
     next();
   };
 };

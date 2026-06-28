@@ -85,4 +85,18 @@ export class AuthService {
       console.log('✅ Default admin created: admin@immigration.com / Admin@123');
     }
   }
+
+  /** Seeds an Owner (full RBAC access) for the Reception Desk system. */
+  static async seedOwner() {
+    const existingOwner = await User.findOne({ role: 'owner' });
+    if (!existingOwner) {
+      await User.create({
+        name: 'Owner',
+        email: 'owner@immigration.com',
+        password: 'Owner@123',
+        role: 'owner',
+      });
+      console.log('✅ Default owner created: owner@immigration.com / Owner@123');
+    }
+  }
 }

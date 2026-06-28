@@ -2,6 +2,12 @@ import { Request, Response } from 'express';
 import { FormService } from './form.service';
 import { sendSuccess } from '../../shared/utils/apiResponse';
 import { asyncHandler } from '../../shared/utils/asyncHandler';
+import { FormScope } from '../../shared/types';
+
+const parseScope = (raw: unknown): FormScope | undefined => {
+  if (raw === FormScope.WEBSITE || raw === FormScope.RECEPTION) return raw;
+  return undefined;
+};
 
 export class FormController {
   static create = asyncHandler(async (req: Request, res: Response) => {
@@ -9,13 +15,14 @@ export class FormController {
     sendSuccess(res, 201, 'Form field created', field);
   });
 
-  static getAll = asyncHandler(async (_req: Request, res: Response) => {
-    const fields = await FormService.getAll();
+  static getAll = asyncHandler(async (req: Request, res: Response) => {
+    const fields = await FormService.getAll(parseScope(req.query.scope));
     sendSuccess(res, 200, 'Form fields fetched', fields);
   });
 
-  static getActiveForm = asyncHandler(async (_req: Request, res: Response) => {
-    const fields = await FormService.getActiveForm();
+  static getActiveForm = asyncHandler(async (req: Request, res: Response) => {
+    const scope = parseScope(req.query.scope) || FormScope.WEBSITE;
+    const fields = await FormService.getActiveForm(scope);
     sendSuccess(res, 200, 'Active form fetched', fields);
   });
 

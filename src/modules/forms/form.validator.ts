@@ -9,6 +9,7 @@ export const createFieldValidator = [
       'dropdown', 'radio', 'checkbox', 'country_selector', 'visa_type_selector',
     ])
     .withMessage('Invalid field type'),
+  body('scope').optional().isIn(['website', 'reception']).withMessage('Invalid scope'),
 ];
 
 export const updateFieldValidator = [

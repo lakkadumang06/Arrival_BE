@@ -1,21 +1,24 @@
 import { FormField, IFormField } from './form.model';
 import { AppError } from '../../shared/utils/AppError';
+import { FormScope } from '../../shared/types';
 
 export class FormService {
   static async create(data: Partial<IFormField>): Promise<IFormField> {
-    const maxOrder = await FormField.findOne().sort({ order: -1 });
+    const scope = data.scope || FormScope.WEBSITE;
+    const maxOrder = await FormField.findOne({ scope }).sort({ order: -1 });
     const order = maxOrder ? maxOrder.order + 1 : 0;
 
-    const field = await FormField.create({ ...data, order });
+    const field = await FormField.create({ ...data, scope, order });
     return field;
   }
 
-  static async getAll(): Promise<IFormField[]> {
-    return FormField.find().sort({ order: 1 });
+  static async getAll(scope?: FormScope): Promise<IFormField[]> {
+    const filter = scope ? { scope } : {};
+    return FormField.find(filter).sort({ order: 1 });
   }
 
-  static async getActiveForm(): Promise<IFormField[]> {
-    return FormField.find({ enabled: true }).sort({ order: 1 });
+  static async getActiveForm(scope: FormScope = FormScope.WEBSITE): Promise<IFormField[]> {
+    return FormField.find({ enabled: true, scope }).sort({ order: 1 });
   }
 
   static async getById(id: string): Promise<IFormField> {
@@ -52,7 +55,7 @@ export class FormService {
   }
 
   static async seedDefaultFields(): Promise<void> {
-    const count = await FormField.countDocuments();
+    const count = await FormField.countDocuments({ scope: FormScope.WEBSITE });
     if (count === 0) {
       const defaultFields = [
         { label: 'Full Name', name: 'name', type: 'text', required: true, placeholder: 'Enter your full name', order: 0 },
@@ -69,8 +72,39 @@ export class FormService {
         ]},
         { label: 'Message', name: 'message', type: 'textarea', required: false, placeholder: 'Tell us about your requirements', order: 5 },
       ];
-      await FormField.insertMany(defaultFields.map((f) => ({ ...f, enabled: true })));
-      console.log('✅ Default form fields seeded');
+      await FormField.insertMany(
+        defaultFields.map((f) => ({ ...f, enabled: true, scope: FormScope.WEBSITE }))
+      );
+      console.log('✅ Default website form fields seeded');
     }
+
+    await this.seedReceptionFields();
+  }
+
+  /** Seeds the QR intake form with the fields the reception desk needs. */
+  static async seedReceptionFields(): Promise<void> {
+    const count = await FormField.countDocuments({ scope: FormScope.RECEPTION });
+    if (count > 0) return;
+
+    const fields = [
+      { label: 'Full Name', name: 'name', type: 'text', required: true, placeholder: 'Enter your full name', order: 0 },
+      { label: 'Mobile Number', name: 'mobile', type: 'phone', required: true, placeholder: 'Enter your mobile number', order: 1 },
+      { label: 'Address', name: 'address', type: 'textarea', required: false, placeholder: 'Enter your address', order: 2 },
+      { label: 'Goal Country', name: 'goalCountry', type: 'country_selector', required: true, placeholder: 'Which country?', order: 3 },
+      {
+        label: 'Target Intake', name: 'targetIntake', type: 'dropdown', required: true, placeholder: 'Select intake', order: 4,
+        options: [
+          { label: 'Spring 2026', value: 'spring-2026' },
+          { label: 'Fall 2026', value: 'fall-2026' },
+          { label: 'Spring 2027', value: 'spring-2027' },
+          { label: 'Fall 2027', value: 'fall-2027' },
+        ],
+      },
+    ];
+
+    await FormField.insertMany(
+      fields.map((f) => ({ ...f, enabled: true, scope: FormScope.RECEPTION }))
+    );
+    console.log('✅ Default reception (QR) form fields seeded');
   }
 }
