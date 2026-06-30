@@ -1,9 +1,10 @@
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
-import { AuthRequest, PermissionKey, UserRole } from '../shared/types';
+import { AuthRequest, PermissionKey, UserRole, AccessResource, AccessAction } from '../shared/types';
 import { sendError } from '../shared/utils/apiResponse';
 import { User } from '../modules/auth/auth.model';
+import { RoleAccessService } from '../modules/role-access/roleAccess.service';
 
 export const authenticate = (
   req: AuthRequest,
@@ -68,6 +69,33 @@ export const requirePermission = (permission: PermissionKey) => {
 
     if (!user.permissions?.[permission]) {
       sendError(res, 403, `Access denied. Missing permission: ${permission}`);
+      return;
+    }
+
+    next();
+  };
+};
+
+/**
+ * Dynamic CRUD gate driven by the Owner-configured role-access matrix.
+ * The Owner is unrestricted; every other role is allowed only if its matrix
+ * grants `action` on `resource`. Read live so the Owner's toggles apply at once.
+ */
+export const requireAccess = (resource: AccessResource, action: AccessAction) => {
+  return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+      sendError(res, 401, 'Access denied. No token provided.');
+      return;
+    }
+
+    if (req.user.role === UserRole.OWNER) {
+      next();
+      return;
+    }
+
+    const allowed = await RoleAccessService.isAllowed(req.user.role, resource, action);
+    if (!allowed) {
+      sendError(res, 403, `Access denied. Your role cannot ${action} ${resource}.`);
       return;
     }
 

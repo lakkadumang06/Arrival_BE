@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { CMSController } from './cms.controller';
-import { authenticate } from '../../middleware/auth';
+import { authenticate, requireAccess } from '../../middleware/auth';
 import { upload } from '../../middleware/upload';
 
 const router = Router();
@@ -9,7 +9,7 @@ const router = Router();
 router.get('/', CMSController.getContent);
 
 // Protected routes
-router.put('/', authenticate, CMSController.updateContent);
-router.post('/upload', authenticate, upload.single('image'), CMSController.uploadImage);
+router.put('/', authenticate, requireAccess('cms', 'update'), CMSController.updateContent);
+router.post('/upload', authenticate, requireAccess('cms', 'update'), upload.single('image'), CMSController.uploadImage);
 
 export default router;

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { FAQController } from './faq.controller';
-import { authenticate } from '../../middleware/auth';
+import { authenticate, requireAccess } from '../../middleware/auth';
 
 const router = Router();
 
@@ -9,9 +9,9 @@ router.get('/public', FAQController.getEnabled);
 
 // Protected
 router.get('/', authenticate, FAQController.getAll);
-router.post('/', authenticate, FAQController.create);
+router.post('/', authenticate, requireAccess('faq', 'create'), FAQController.create);
 router.get('/:id', authenticate, FAQController.getById);
-router.put('/:id', authenticate, FAQController.update);
-router.delete('/:id', authenticate, FAQController.delete);
+router.put('/:id', authenticate, requireAccess('faq', 'update'), FAQController.update);
+router.delete('/:id', authenticate, requireAccess('faq', 'delete'), FAQController.delete);
 
 export default router;

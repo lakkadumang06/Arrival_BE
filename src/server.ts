@@ -22,10 +22,12 @@ import enquiryRoutes from './modules/enquiries/enquiry.routes';
 import inquiryRoutes from './modules/reception/inquiry.routes';
 import messageTemplateRoutes from './modules/reception/messageTemplate.routes';
 import userRoutes from './modules/users/user.routes';
+import roleAccessRoutes from './modules/role-access/roleAccess.routes';
 
 // Seeders
 import { AuthService } from './modules/auth/auth.service';
 import { FormService } from './modules/forms/form.service';
+import { RoleAccessService } from './modules/role-access/roleAccess.service';
 
 const app = express();
 
@@ -71,6 +73,8 @@ app.use(async (_req, _res, next) => {
       await connectDatabase();
       await AuthService.seedAdmin();
       await AuthService.seedOwner();
+      await AuthService.seedRoleUsers();
+      await RoleAccessService.seedDefaults();
       await FormService.seedDefaultFields();
       isConnected = true;
     } catch (error) {
@@ -96,6 +100,7 @@ app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/message-templates', messageTemplateRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/role-access', roleAccessRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

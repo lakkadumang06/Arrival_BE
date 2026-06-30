@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { ServiceController } from './service.controller';
-import { authenticate } from '../../middleware/auth';
+import { authenticate, requireAccess } from '../../middleware/auth';
 
 const router = Router();
 
@@ -9,9 +9,9 @@ router.get('/public', ServiceController.getEnabled);
 
 // Protected
 router.get('/', authenticate, ServiceController.getAll);
-router.post('/', authenticate, ServiceController.create);
+router.post('/', authenticate, requireAccess('services', 'create'), ServiceController.create);
 router.get('/:id', authenticate, ServiceController.getById);
-router.put('/:id', authenticate, ServiceController.update);
-router.delete('/:id', authenticate, ServiceController.delete);
+router.put('/:id', authenticate, requireAccess('services', 'update'), ServiceController.update);
+router.delete('/:id', authenticate, requireAccess('services', 'delete'), ServiceController.delete);
 
 export default router;

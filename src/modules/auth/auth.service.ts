@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../../config';
 import { User, IUser } from './auth.model';
 import { AppError } from '../../shared/utils/AppError';
+import { UserRole } from '../../shared/types';
 
 export class AuthService {
   static generateToken(user: IUser): string {
@@ -97,6 +98,29 @@ export class AuthService {
         role: 'owner',
       });
       console.log('✅ Default owner created: owner@immigration.com / Owner@123');
+    }
+  }
+
+  /**
+   * Seeds the three Arrival role accounts used by the Assign-Role demo:
+   *   Owner     → arrivalowner@gmail.com     (super-admin, unrestricted)
+   *   Co-owner  → arrivalcoowner@gmail.com   (admin, Owner-configurable access)
+   *   Reception → arrivalreception@gmail.com (reception, Owner-configurable access)
+   * All share the password Arrival@123.
+   */
+  static async seedRoleUsers() {
+    const accounts = [
+      { name: 'Arrival Owner', email: 'arrivalowner@gmail.com', role: UserRole.OWNER },
+      { name: 'Arrival Co-owner', email: 'arrivalcoowner@gmail.com', role: UserRole.ADMIN },
+      { name: 'Arrival Reception', email: 'arrivalreception@gmail.com', role: UserRole.RECEPTION },
+    ];
+
+    for (const acc of accounts) {
+      const existing = await User.findOne({ email: acc.email });
+      if (!existing) {
+        await User.create({ ...acc, password: 'Arrival@123' });
+        console.log(`✅ Seeded ${acc.role}: ${acc.email} / Arrival@123`);
+      }
     }
   }
 }

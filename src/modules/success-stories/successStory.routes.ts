@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { SuccessStoryController } from './successStory.controller';
-import { authenticate, authorize } from '../../middleware/auth';
+import { authenticate, requireAccess } from '../../middleware/auth';
 import { upload } from '../../middleware/upload';
 
 const router = Router();
@@ -17,7 +17,7 @@ router.get('/', authenticate, SuccessStoryController.getAll);
 router.post(
   '/',
   authenticate,
-  authorize('admin'),
+  requireAccess('successStories', 'create'),
   upload.single('image'),
   SuccessStoryController.create
 );
@@ -27,11 +27,11 @@ router.get('/:id', authenticate, SuccessStoryController.getById);
 router.put(
   '/:id',
   authenticate,
-  authorize('admin'),
+  requireAccess('successStories', 'update'),
   upload.single('image'),
   SuccessStoryController.update
 );
 
-router.delete('/:id', authenticate, authorize('admin'), SuccessStoryController.delete);
+router.delete('/:id', authenticate, requireAccess('successStories', 'delete'), SuccessStoryController.delete);
 
 export default router;

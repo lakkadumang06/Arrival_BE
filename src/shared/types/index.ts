@@ -110,3 +110,56 @@ export const DEFAULT_OWNER_PERMISSIONS: UserPermissions = {
 };
 
 export type PermissionKey = keyof UserPermissions;
+
+// ── Dynamic CRUD access matrix (Owner-configurable, per role) ───────────
+//
+// The Owner is the super-admin: always unrestricted and the only role that can
+// open the "Assign Role" screen. Every OTHER managed role (Co-owner/admin and
+// Reception) gets a per-resource create/update/delete matrix the Owner can
+// toggle live. `requireAccess()` enforces it on the write routes.
+
+export type AccessAction = 'create' | 'update' | 'delete';
+
+export interface ResourceAccess {
+  create: boolean;
+  update: boolean;
+  delete: boolean;
+}
+
+export const ACCESS_RESOURCES = [
+  'leads',
+  'services',
+  'successStories',
+  'faq',
+  'cms',
+] as const;
+
+export type AccessResource = (typeof ACCESS_RESOURCES)[number];
+
+export type RoleAccessMatrix = Record<AccessResource, ResourceAccess>;
+
+/** Roles whose access the Owner can configure (Owner itself is unrestricted). */
+export const MANAGED_ROLES: string[] = [UserRole.ADMIN, UserRole.RECEPTION];
+
+const everything = (): ResourceAccess => ({ create: true, update: true, delete: true });
+const nothing = (): ResourceAccess => ({ create: false, update: false, delete: false });
+
+export const buildMatrix = (factory: () => ResourceAccess): RoleAccessMatrix =>
+  ACCESS_RESOURCES.reduce((acc, resource) => {
+    acc[resource] = factory();
+    return acc;
+  }, {} as RoleAccessMatrix);
+
+/** Co-owner (admin) starts with full CRUD on everything. */
+export const DEFAULT_ADMIN_ACCESS: RoleAccessMatrix = buildMatrix(everything);
+
+/** Reception starts locked down — the Owner opens up what they need. */
+export const DEFAULT_RECEPTION_ACCESS: RoleAccessMatrix = {
+  ...buildMatrix(nothing),
+  leads: { create: false, update: true, delete: false },
+};
+
+export const DEFAULT_ROLE_ACCESS: Record<string, RoleAccessMatrix> = {
+  [UserRole.ADMIN]: DEFAULT_ADMIN_ACCESS,
+  [UserRole.RECEPTION]: DEFAULT_RECEPTION_ACCESS,
+};
